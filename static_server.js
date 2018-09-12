@@ -24,7 +24,9 @@ class SERVER {
   start() {
     http.createServer((req, res) => {
       const pathName = path.join(this.root, path.normalize(req.url));    
+      console.log('pathName--------',pathName)
       const fileName = pathName.split('\\').pop();
+      console.log('fileName--------',fileName)
       let stream = null;
       //check 
       fs.stat((`.${pathName}`), (err, stat) => {
