@@ -1,6 +1,8 @@
 const http = require('http');
 const path = require('path');
 const config = require('./config/default');
+const os = require('os');
+const querystring = require('querystring');
 let fs = require('fs');
 
 //mimetype
@@ -23,11 +25,54 @@ class SERVER {
   
   start() {
     http.createServer((req, res) => {
-      const pathName = path.join(this.root, path.normalize(req.url));    
-      console.log('pathName--------',pathName)
-      const fileName = pathName.split('/').pop();
-      console.log('fileName--------',fileName)
-      let stream = null;
+      let pathName = path.join(this.root, path.normalize(req.url));    
+      //platform
+      let fileName = null;
+      if(os.platform() === 'win32'){
+        console.log('win')
+        fileName = pathName.split('\\').pop();
+      }else {
+        console.log('linux')
+        fileName = pathName.split('/').pop();
+      }
+      console.log(req.url)
+      if (req.url.includes('/jsonp')) {
+        //jsonp处理逻辑   
+        let str = req.url;
+        str = str.slice((str.indexOf('?')+1));
+        let obj = querystring.parse(str,'&','=');
+        console.log(obj)
+        let data = this.jsonphandler(str);
+        res.writeHead(200,{'Content-Type':'application/json;charset=utf-8'})
+        res.end(data)
+      } else{
+        //静态文件处理逻辑
+        this.filehandler(pathName,fileName,req,res)
+      }
+
+    }).listen(this.port, err => {
+      if (err) {
+        console.error('Failed to start server',err);
+      } else {
+        console.info(`Server started on port ${this.port}`);
+      }
+    });
+  }
+//jsonp处理
+ jsonphandler(url){
+    console.log('this is jsonp handler');
+    return `var data = {"name": "Monkey"};s.handler(data)`
+ }
+//文件处理
+  filehandler(pathName,fileName,req,res){
+    // console.log('pathName---->',pathName,'fileName---->',fileName)
+    let stream = null;
+    if(fileName === ''){
+      stream = fs.createReadStream(`./${this.root}/404.html`);
+      res.writeHead(200,{'Content-Type':"text/html",'Transfer-Encoding':'chunked'});
+      stream.pipe(res);
+      stream.on('end', function(){res.end()})
+    } else {
       //check 
       fs.stat((`.${pathName}`), (err, stat) => {
         if (!err) {
@@ -40,20 +85,8 @@ class SERVER {
         stream.pipe(res);
         stream.on('end', function(){res.end()})
       })
-      //
-    }).listen(this.port, err => {
-      if (err) {
-          console.error(err);
-          console.info('Failed to start server');
-      } else {
-          console.info(`Server started on port ${this.port}`);
-      }
-    });
-  }
-
-//文件检测
-  filehandler(){
-
+    }
+    
   }
 
 //mime判断
@@ -65,5 +98,8 @@ class SERVER {
 
 
 }
+
+
+
 let server = new SERVER ();
 server.start();
