@@ -50,7 +50,7 @@ class SERVER {
         this.filehandler(pathName,fileName,req,res)
       }
 
-    }).listen(('0.0.0.0',this.port), err => {
+    }).listen(this.port,'0.0.0.0', err => {
       if (err) {
         console.error('Failed to start server',err);
       } else {
